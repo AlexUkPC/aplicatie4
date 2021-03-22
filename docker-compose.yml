@@ -1,0 +1,44 @@
+version: "3"  # optional since v1.27.0
+services:
+  web_aplicatie4:
+    build:
+      context: .
+      args:
+        USER_ID: "${USER_ID:-1000}"
+        GROUP_ID: "${GROUP_ID:-1000}"
+    ports:
+      - "3003:3000"
+    volumes: 
+      - ./aplicatie4:/opt/app
+      - gem_cache_aplicatie4:/gems
+    env_file: 
+      - .env/development/database_aplicatie4
+      - .env/development/web_aplicatie4
+    environment: 
+      - WEBPACKER_DEV_SERVER_HOST=webpack_dev_server_aplicatie4
+  webpack_dev_server_aplicatie4:
+    build:
+      context: .
+      args:
+        USER_ID: "${USER_ID:-1000}"
+        GROUP_ID: "${GROUP_ID:-1000}"
+    command: ./bin/webpack-dev-server
+    ports: 
+      - "3038:3038"
+    volumes: 
+      - ./aplicatie4:/opt/app
+      - gem_cache_aplicatie4:/gems
+    env_file: 
+      - .env/development/database_aplicatie4
+      - .env/development/web_aplicatie4
+    environment: 
+      - WEBPACKER_DEV_SERVER_HOST=0.0.0.0
+  database_aplicatie4:
+    image: postgres
+    env_file: 
+      - .env/development/database_aplicatie4
+    volumes: 
+      - db_data_aplicatie4:/var/lib/postgresql/data
+volumes: 
+  db_data_aplicatie4:
+  gem_cache_aplicatie4:

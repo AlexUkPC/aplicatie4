@@ -1,0 +1,78 @@
+Replace all aplicatie4 in all files with the actual name of the project and also in this file
+mv .env/development/web .env/development/web_aplicatie4
+mv .env/development/database .env/development/database_aplicatie4
+mv .env/production/web .env/production/web_aplicatie4
+mv .env/production/database .env/production/database_aplicatie4
+mv docker-compose-project_name.yml docker-compose-aplicatie4.yml
+
+Create a new project
+    docker build -t rails-toolbox-aplicatie4 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -f Dockerfile.rails .
+    docker run -it --rm -v $PWD:/opt/app rails-toolbox-aplicatie4 rails new -d postgresql --skip-bundle aplicatie4
+
+Create the development environment
+    Move docker-entrypoint.sh and wait-for inside the aplicatie4 folder
+        chmod +x aplicatie4/docker-entrypoint.sh #make it executable
+    cd ..
+    cd aplicatie4
+    !docker build -t aplicatie4-development --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .
+    
+    *Postgresql
+        in database.yml modificari:
+            in default:
+                ...
+                pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+                host: <%= ENV.fetch("DATABASE_HOST"){ 'none'}  %>
+                username: <%= ENV.fetch("POSTGRES_USER"){ 'none'}  %>
+                password: <%= ENV.fetch("POSTGRES_PASSWORD"){ 'none'}  %>
+                database: <%= ENV.fetch("POSTGRES_DB"){ 'none'}  %>
+                timeout: 5000
+            in development sa ramana doar <<: *default
+            in production sa ramana doar <<: *default
+    !docker-compose up
+    docker-compose run --rm --user "$(id -u):$(id -g)" web_aplicatie4 bin/rails webpacker:install
+    in config/webpacker.yml
+        development:
+            ...
+            dev_server:
+                ...
+                port: 3036 #change this
+                public: localhost:3036 #change this
+                ...
+                watch_options:
+                    ...
+                    poll: true
+    in config/environments/development
+	comment config.action_view.annotate_rendered_view_with_filenames = true
+    cd ..
+    cd aplicatie4
+    change in docker-compose.yml 
+        services:
+            web_aplicatie2:
+                ports:
+                - "3001:3000" #change only external port
+            webpack_dev_server_aplicatie2:
+                ports: 
+                - "3036:3036" #change this
+    docker-compose up
+
+Use it in development
+    Generate a scaffold
+        docker-compose exec web_aplicatie4 bin/rails g scaffold User first_name last_name
+        docker-compose exec web_aplicatie4 bin/rails db:migrate
+    Adding a gem
+        docker-compose exec web_aplicatie4 bundle install
+
+Configuring the production environment
+    docker build -f Dockerfile.prod -t alexrogna/aplicatie4_web:prod --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .
+    docker login
+    docker push alexrogna/aplicatie4_web:prod
+
+creeaza subdomeniu pe linode
+ssh login
+    nano docker-compose-aplicatie4.yml
+        copiaza din docker-compose-aplicatie4.yml 
+    nano .env/production/database_aplicatie4
+        copiaza din .env/production/database_aplicatie4
+    nano .env/production/web_aplicatie4
+        copiaza din .env/production/web_aplicatie4
+    docker-compose -f docker-compose-aplicatie4.yml up
